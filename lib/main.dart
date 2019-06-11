@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import './counter_bloc.dart';
+import './counter_event.dart';
+
 void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
@@ -26,19 +29,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
-
-  void _decrementCounter() {
-    setState(() {
-      _counter--;
-    });
-  }
+  //TODO: it's just created here, but in a large project BLoCs can be created in a single place and injected through inherited widget
+  final _counterBloc = CounterBloc();
 
   @override
   Widget build(BuildContext context) {
@@ -47,24 +39,31 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.display1,
-            ),
-          ],
-        ),
+        child: StreamBuilder(
+            initialData: 0,
+            stream: _counterBloc.counter,
+            builder: (BuildContext context, AsyncSnapshot<int> snapshot) {
+              return Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Text(
+                    'You have pushed the button this many times:',
+                  ),
+                  Text(
+                    '${snapshot.data}',
+                    style: Theme.of(context).textTheme.display1,
+                  ),
+                ],
+              );
+            }),
       ),
       floatingActionButton: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: <Widget>[
           FloatingActionButton(
-            onPressed: _incrementCounter,
+            // just sends event to BLoC. Don't need to worry about setState() using stream concept
+            onPressed: () =>
+                _counterBloc.counterEventSink.add(IncrementCounter()),
             tooltip: 'Increment',
             child: Icon(Icons.add),
           ),
@@ -72,12 +71,19 @@ class _MyHomePageState extends State<MyHomePage> {
             width: 8,
           ),
           FloatingActionButton(
-            onPressed: _decrementCounter,
+            onPressed: () =>
+                _counterBloc.counterEventSink.add(DecrementCounter()),
             tooltip: 'Decrement',
             child: Icon(Icons.remove),
           ),
         ],
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _counterBloc.dispose();
   }
 }
